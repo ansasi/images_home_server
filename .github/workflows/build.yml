@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -18,41 +20,40 @@ jobs:
         with:
           platforms: arm
 
-      - name: Install Packer
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip
+          sudo apt-get install -y unzip wget
+
+      - name: Install Packer
+        run: |
           wget https://releases.hashicorp.com/packer/1.9.3/packer_1.9.3_linux_amd64.zip
           unzip packer_1.9.3_linux_amd64.zip
-          sudo mv packer /usr/local/bin/packer
-          packer version
+          sudo mv packer /usr/local/bin/
 
-      - name: Install packer-builder-arm plugin
+      - name: Install ARM Builder Plugin
         run: |
-          mkdir -p ~/.config/packer/plugins
-          # Example: download a specific release from GitHub
+          mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/arm
           wget https://github.com/mkaczanowski/packer-builder-arm/releases/download/v1.1.0/packer-builder-arm_1.1.0_linux_amd64.tar.gz
           tar -xvf packer-builder-arm_1.1.0_linux_amd64.tar.gz
           chmod +x packer-builder-arm
-          mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/packer-builder-arm
-          mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/packer-builder-arm/packer-builder-arm
+          mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/arm/
 
       - name: Validate Packer Template
         run: |
           cd packer
-          packer init rpi-ubuntu.json
-          packer validate rpi-ubuntu.json
+          packer init .
+          packer validate .
 
       - name: Build Image
         run: |
-          cd packer
           packer build \
             -var "ssh_password=${{ secrets.SSH_PASS }}" \
-            -var "some_api_token=${{ secrets.API_TOKEN }}" \
+            -var-file=config/prod.pkrvars.hcl \
             .
 
-      - name: Upload Image as Artifact
+      - name: Upload Image Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: rpi-image
+          name: rpi-ubuntu
           path: packer/build/output/*.img
