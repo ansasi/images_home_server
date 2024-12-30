@@ -1,0 +1,58 @@
+name: Build Raspberry Pi Image
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm
+
+      - name: Install Packer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          wget https://releases.hashicorp.com/packer/1.9.3/packer_1.9.3_linux_amd64.zip
+          unzip packer_1.9.3_linux_amd64.zip
+          sudo mv packer /usr/local/bin/packer
+          packer version
+
+      - name: Install packer-builder-arm plugin
+        run: |
+          mkdir -p ~/.config/packer/plugins
+          # Example: download a specific release from GitHub
+          wget https://github.com/mkaczanowski/packer-builder-arm/releases/download/v1.1.0/packer-builder-arm_1.1.0_linux_amd64.tar.gz
+          tar -xvf packer-builder-arm_1.1.0_linux_amd64.tar.gz
+          chmod +x packer-builder-arm
+          mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/packer-builder-arm
+          mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/packer-builder-arm/packer-builder-arm
+
+      - name: Validate Packer Template
+        run: |
+          cd packer
+          packer init rpi-ubuntu.json
+          packer validate rpi-ubuntu.json
+
+      - name: Build Image
+        run: |
+          cd packer
+          packer build \
+            -var "ssh_password=${{ secrets.SSH_PASS }}" \
+            -var "some_api_token=${{ secrets.API_TOKEN }}" \
+            .
+
+      - name: Upload Image as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rpi-image
+          path: packer/build/output/*.img
