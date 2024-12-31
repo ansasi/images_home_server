@@ -1,0 +1,92 @@
+name: Build Raspberry Pi Image
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip wget
+
+      - name: Install Packer
+        run: |
+          wget https://releases.hashicorp.com/packer/1.9.3/packer_1.9.3_linux_amd64.zip
+          unzip packer_1.9.3_linux_amd64.zip
+          sudo mv packer /usr/local/bin/
+
+      - name: Install ARM Builder Plugin
+        run: |
+          mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/arm
+          wget https://github.com/mkaczanowski/packer-builder-arm/releases/download/v1.1.0/packer-builder-arm_1.1.0_linux_amd64.tar.gz
+          tar -xvf packer-builder-arm_1.1.0_linux_amd64.tar.gz
+          chmod +x packer-builder-arm
+          mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/arm/
+      
+  build-prod:
+    name: Manual Build Image
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: prod
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+    steps:
+      - name: Check for SSH Password
+        run: |
+          if [ -z "${{ secrets.SSH_PASS }}" ]; then
+            echo "Error: SSH_PASS secret is not set. Please configure it in GitHub Secrets."
+            exit 1
+          fi
+
+      - name: Mask SSH Password
+        run: |
+          echo "::add-mask::${{ secrets.SSH_PASS }}"
+        
+      - name: Validate Packer Template
+        run: |
+          set -x
+          cd packer
+          packer init .
+          packer validate \
+            -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
+            -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
+            -var-file=config/prod.pkrvars.hcl \
+            .
+          set +x
+
+      - name: Build Image with Logging
+        run: |
+          set -x
+          packer build \
+            -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
+            -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
+            -var-file=config/prod.pkrvars.hcl \
+            .
+          set +x
+
+      - name: Cleanup Build Directory
+        run: |
+          rm -rf packer/build/temp/
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rpi-ubuntu-${{ github.run_id }}
+          path: packer/build/output/*.img
