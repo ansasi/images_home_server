@@ -10,6 +10,8 @@ jobs:
   setup:
     name: Setup Environment
     runs-on: ubuntu-latest
+    environment:
+      name: prod
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -43,7 +45,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     
-    environment: prod
+    environment:
+      name: prod
     if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
 
     steps:
