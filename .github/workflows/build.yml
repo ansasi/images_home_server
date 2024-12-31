@@ -42,6 +42,7 @@ jobs:
       - name: Run `packer validate`
         id: validate
         run: |
+          cd packer
           packer validate \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
@@ -50,6 +51,7 @@ jobs:
 
       - name: Build Image with Logging
         run: |
+          cd packer
           packer build \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
