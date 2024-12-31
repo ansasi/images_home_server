@@ -30,13 +30,13 @@ jobs:
       #     unzip packer_1.9.3_linux_amd64.zip
       #     sudo mv packer /usr/local/bin/
 
-      - name: Install ARM Builder Plugin
-        run: |
-          mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/arm
-          wget https://github.com/mkaczanowski/packer-builder-arm/releases/download/v1.1.0/packer-builder-arm_1.1.0_linux_amd64.tar.gz
-          tar -xvf packer-builder-arm_1.1.0_linux_amd64.tar.gz
-          chmod +x packer-builder-arm
-          mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/arm/
+      # - name: Install ARM Builder Plugin
+      #   run: |
+      #     mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/arm
+      #     wget https://github.com/mkaczanowski/packer-builder-arm/releases/download/v1.1.0/packer-builder-arm_1.1.0_linux_amd64.tar.gz
+      #     tar -xvf packer-builder-arm_1.1.0_linux_amd64.tar.gz
+      #     chmod +x packer-builder-arm
+      #     mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/arm/
       
   build-prod:
     name: Manual Build Image
