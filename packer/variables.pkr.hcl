@@ -15,10 +15,10 @@ variable "ssh_username" {
 
 variable "ssh_private_key" {
   type      = string
-  sensitive = true
+  # sensitive = true
 }
 
 variable "ssh_public_key" {
   type      = string
-  sensitive = true
+  # sensitive = true
 }
