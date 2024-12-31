@@ -24,10 +24,9 @@ jobs:
 
       - name: Install Packer
         run: |
-          wget https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip
-          # Use '-o' to overwrite if packer already exists, avoiding the interactive prompt
-          unzip -o packer_1.11.2_linux_amd64.zip
-          sudo mv packer /usr/local/bin/
+          wget https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -O /packer/packer_1.11.2_linux_amd64.zip
+          unzip /packer/packer_1.11.2_linux_amd64.zip -d /packer
+          sudo mv /packer/packer /usr/local/bin/
 
       # If you'd like to install the ARM builder plugin, uncomment & fix the tar command:
       # - name: Install ARM Builder Plugin
