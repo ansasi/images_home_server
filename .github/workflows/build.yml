@@ -5,9 +5,16 @@ on:
     branches: [ "main", "master", "develop" ]
 
 jobs:
-  setup:
-    name: Setup Environment
+  build-dev:
+    name: Manual Build Image (Dev)
     runs-on: ubuntu-latest
+
+    # Dev environment, no manual approval required (unless you add rules for 'dev')
+    environment:
+      name: dev
+
+    if: ${{ github.ref == 'refs/heads/develop' }}
+
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -26,27 +33,6 @@ jobs:
         uses: hashicorp/setup-packer@main
         id: setup
 
-      # If you'd like to install the ARM builder plugin, uncomment & fix the tar command:
-      # - name: Install ARM Builder Plugin
-      #   run: |
-      #     mkdir -p ~/.config/packer/plugins/github.com/mkaczanowski/arm
-      #     wget https://github.com/mkaczanowski/packer-builder-arm/releases/download/v1.0.9/packer-builder-arm_1.0.9_linux_amd64.tar.gz
-      #     tar -xvf packer-builder-arm_1.0.9_linux_amd64.tar.gz
-      #     chmod +x packer-builder-arm
-      #     mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/arm/
-
-  build-dev:
-    name: Manual Build Image (Dev)
-    needs: setup
-    runs-on: ubuntu-latest
-
-    # Dev environment, no manual approval required (unless you add rules for 'dev')
-    environment:
-      name: dev
-
-    if: ${{ github.ref == 'refs/heads/develop' }}
-
-    steps:
       - name: Run `packer init`
         id: init
         run: |
@@ -81,7 +67,6 @@ jobs:
 
   build-prod:
     name: Manual Build Image (Prod)
-    needs: setup
     runs-on: ubuntu-latest
 
     # Prod environment, which can require manual approval if environment rules are set
@@ -91,27 +76,44 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
 
     steps:
-      - name: Validate Packer Template
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm
+
+      - name: Install Dependencies
         run: |
-          set -x
-          cd packer
-          packer init .
+          sudo apt-get update
+          sudo apt-get install -y unzip wget
+
+      - name: Setup `packer`
+        uses: hashicorp/setup-packer@main
+        id: setup
+
+      - name: Run `packer init`
+        id: init
+        run: |
+          packer init ./packer/packer.pkr.hcl
+
+      - name: Run `packer validate`
+        id: validate
+        run: |
           packer validate \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
             -var-file=config/prod.pkrvars.hcl \
-            .
-          set +x
+            ./packer/rpi-ubuntu.pkr.hcl
 
       - name: Build Image with Logging
         run: |
-          set -x
           packer build \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
             -var-file=config/prod.pkrvars.hcl \
-            .
-          set +x
+            ./packer/rpi-ubuntu.pkr.hcl
 
       - name: Cleanup Build Directory
         run: |
