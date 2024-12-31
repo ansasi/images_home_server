@@ -37,31 +37,55 @@ jobs:
           tar -xvf packer-builder-arm_1.1.0_linux_amd64.tar.gz
           chmod +x packer-builder-arm
           mv packer-builder-arm ~/.config/packer/plugins/github.com/mkaczanowski/arm/
-
-      - name: Validate Packer Template
-        run: |
-          cd packer
-          packer init .
-          packer validate .
       
-  build:
+  build-prod:
     name: Manual Build Image
     needs: setup
     runs-on: ubuntu-latest
     
-    environment:
-      name: prod
-    
+    environment: prod
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
     steps:
-      - name: Build Image
+      - name: Check for SSH Password
         run: |
-          packer build \
-            -var "ssh_password=${{ secrets.SSH_PASS }}" \
+          if [ -z "${{ secrets.SSH_PASS }}" ]; then
+            echo "Error: SSH_PASS secret is not set. Please configure it in GitHub Secrets."
+            exit 1
+          fi
+
+      - name: Mask SSH Password
+        run: |
+          echo "::add-mask::${{ secrets.SSH_PASS }}"
+        
+      - name: Validate Packer Template
+        run: |
+          set -x
+          cd packer
+          packer init .
+          packer validate \
+            -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
+            -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
             -var-file=config/prod.pkrvars.hcl \
             .
+          set +x
+
+      - name: Build Image with Logging
+        run: |
+          set -x
+          packer build \
+            -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
+            -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
+            -var-file=config/prod.pkrvars.hcl \
+            .
+          set +x
+
+      - name: Cleanup Build Directory
+        run: |
+          rm -rf packer/build/temp/
 
       - name: Upload Image Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: rpi-ubuntu
+          name: rpi-ubuntu-${{ github.run_id }}
           path: packer/build/output/*.img
