@@ -44,7 +44,7 @@ jobs:
           packer validate \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -var-file=config/dev.pkrvars.hcl \
+            -var-file=/packer/config/dev.pkrvars.hcl \
             ./packer/rpi-ubuntu.pkr.hcl
 
       - name: Build Image with Logging
@@ -52,7 +52,7 @@ jobs:
           packer build \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -var-file=config/dev.pkrvars.hcl \
+            -var-file=/packer/config/dev.pkrvars.hcl \
             ./packer/rpi-ubuntu.pkr.hcl
 
       - name: Cleanup Build Directory
@@ -104,7 +104,7 @@ jobs:
           packer validate \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -var-file=config/prod.pkrvars.hcl \
+            -var-file=/packer/config/prod.pkrvars.hcl \
             ./packer/rpi-ubuntu.pkr.hcl
 
       - name: Build Image with Logging
@@ -112,7 +112,7 @@ jobs:
           packer build \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -var-file=config/prod.pkrvars.hcl \
+            -var-file=/packer/config/prod.pkrvars.hcl \
             ./packer/rpi-ubuntu.pkr.hcl
 
       - name: Cleanup Build Directory
