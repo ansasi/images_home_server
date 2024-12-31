@@ -22,11 +22,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unzip wget
 
-      - name: Install Packer
-        run: |
-          wget https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -O /packer/packer_1.11.2_linux_amd64.zip
-          unzip /packer/packer_1.11.2_linux_amd64.zip -d /packer
-          sudo mv /packer/packer /usr/local/bin/
+      - name: Setup `packer`
+        uses: hashicorp/setup-packer@main
+        id: setup
 
       # If you'd like to install the ARM builder plugin, uncomment & fix the tar command:
       # - name: Install ARM Builder Plugin
@@ -49,27 +47,26 @@ jobs:
     if: ${{ github.ref == 'refs/heads/develop' }}
 
     steps:
-      - name: Validate Packer Template
+      - name: Run `packer init`
+        id: init
+        run: "packer init ."
+
+      - name: Run `packer validate`
+        id: validate
         run: |
-          set -x
-          cd packer
-          packer init .
           packer validate \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
             -var-file=config/dev.pkrvars.hcl \
             .
-          set +x
 
       - name: Build Image with Logging
         run: |
-          set -x
           packer build \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
             -var-file=config/dev.pkrvars.hcl \
             .
-          set +x
 
       - name: Cleanup Build Directory
         run: |
