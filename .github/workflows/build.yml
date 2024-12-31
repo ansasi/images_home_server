@@ -99,24 +99,27 @@ jobs:
       - name: Run `packer init`
         id: init
         run: |
-          packer init ./packer/packer.pkr.hcl
+          cd packer
+          packer init .
 
       - name: Run `packer validate`
         id: validate
         run: |
+          cd packer
           packer validate \
+            -var-file=config/prod.pkrvars.hcl \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -var-file=/packer/config/prod.pkrvars.hcl \
-            ./packer/rpi-ubuntu.pkr.hcl
+            .
 
       - name: Build Image with Logging
         run: |
-          packer build \
+          cd packer
+          packer build -only 'rpi-ubuntu.*' \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -var-file=/packer/config/prod.pkrvars.hcl \
-            ./packer/rpi-ubuntu.pkr.hcl
+            -var-file=config/prod.pkrvars.hcl \
+            .
 
       - name: Cleanup Build Directory
         run: |
