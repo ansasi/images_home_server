@@ -44,20 +44,19 @@ jobs:
         run: |
           cd packer
           packer validate \
-            -var-file=variables.pkr.hcl \
             -var-file=config/dev.pkrvars.hcl \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            ./rpi-ubuntu.pkr.hcl
+            .
 
       - name: Build Image with Logging
         run: |
           cd packer
-          packer build \
+          packer build -only 'rpi-ubuntu.*' \
             -var "ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" \
             -var "ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
             -var-file=config/dev.pkrvars.hcl \
-            ./rpi-ubuntu.pkr.hcl
+            .
 
       - name: Cleanup Build Directory
         run: |
