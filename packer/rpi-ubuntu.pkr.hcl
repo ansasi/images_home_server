@@ -1,25 +1,38 @@
-source "arm" "rpi-ubuntu" {
-  iso_url               = var.iso_url
-  iso_checksum          = var.iso_checksum
-  iso_checksum_type     = "sha256"
-  output_directory      = "build/output"
-  image_build_method    = "hybrid"
-  qemu_binary           = "qemu-system-aarch64"
-  qemu_args             = ["-machine", "virt", "-cpu", "cortex-a72"]
-  disk_image            = true
-  format                = "img"
-  headless              = true
-  ssh_username          = var.ssh_username
-  ssh_private_key       = var.ssh_private_key
-  ssh_public_key        = var.ssh_public_key
-  resize_rootfs         = true
-  enable_serial_console = true
+source "arm" "ubuntu" {
+  file_urls             = ["http://cdimage.ubuntu.com/releases/20.04.2/release/ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz"]
+  file_checksum_url     = "http://cdimage.ubuntu.com/releases/20.04.2/release/SHA256SUMS"
+  file_checksum_type    = "sha256"
+  file_target_extension = "xz"
+  file_unarchive_cmd    = ["xz", "--decompress", "$ARCHIVE_PATH"]
+  image_build_method    = "reuse"
+  image_path            = "ubuntu-20.04.img"
+  image_size            = "3.1G"
+  image_type            = "dos"
+  image_partitions {
+    name         = "boot"
+    type         = "c"
+    start_sector = "2048"
+    filesystem   = "fat"
+    size         = "256M"
+    mountpoint   = "/boot/firmware"
+  }
+  image_partitions {
+    name         = "root"
+    type         = "83"
+    start_sector = "526336"
+    filesystem   = "ext4"
+    size         = "2.8G"
+    mountpoint   = "/"
+  }
+  image_chroot_env             = ["PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"]
+  qemu_binary_source_path      = "/usr/bin/qemu-aarch64-static"
+  qemu_binary_destination_path = "/usr/bin/qemu-aarch64-static"
 }
 
 
 build {
   name      = "rpi-ubuntu"
-  sources   = ["source.arm.rpi-ubuntu"]
+  sources   = ["source.arm.ubuntu"]
   
   provisioner "shell" {
     script = "${path.template_dir}/scripts/base-setup.sh"
