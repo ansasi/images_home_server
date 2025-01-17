@@ -1,4 +1,2 @@
 packer {
-  required_plugins {
-  }
 }
